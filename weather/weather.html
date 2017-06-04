@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>天气预报查询</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/jquery.mobile-1.4.3.css"/>
+</head>
+<body>
+<div data-role="page" id="index">
+
+    <div data-role="header" data-position="fixed">
+        <h1>天气预报查询</h1>
+    </div>
+
+    <div role="main" class="ui-content">
+        <div class="ui-field-contain">
+            <label>城市:</label>
+            <input type="text" name="text-basic" id="search" value="">
+        </div>
+        <input type="button" value="搜索" id="submit">
+        <ul data-role="listview" data-inset="true" id="list">
+        </ul>
+    </div>
+
+    <div data-role="footer">
+        <div data-role="navbar">
+            <ul>
+                <li><a href="#" data-icon="grid" class="ui-btn-active">查询</a></li>
+                <li><a href="#" data-icon="star">收藏</a></li>
+                <li><a href="#" data-icon="gear">设置</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div data-role="page" id="detail">
+
+    <div data-role="header" data-position="fixed">
+        <h1>天气预报查询</h1>
+    </div>
+
+    <div role="main" class="ui-content">
+        <h2></h2>
+        <table data-role="table" id="movie-table" data-mode="reflow" class="ui-responsive">
+            <thead>
+            <tr>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <a href="#" class="ui-btn ui-corner-all" data-rel="back">返回</a>
+    </div>
+
+    <div data-role="footer">
+        <div data-role="navbar">
+            <ul>
+                <li><a href="#" data-icon="grid" class="ui-btn-active">查询</a></li>
+                <li><a href="#" data-icon="star">收藏</a></li>
+                <li><a href="#" data-icon="gear">设置</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+<script src="js/jquery-1.11.1.js"></script>
+<script src="js/jquery.mobile-1.4.3.js"></script>
+<script>
+    var urlPre = "http://localhost/proxy.php?url="; //跨域中转
+    var url1 = "http://www.webxml.com.cn/WebServices/WeatherWebService.asmx/getWeatherbyCityName?theCityName=";
+    var isbind = 0;
+
+    //获取天气列表
+    var getweatherList = function () {
+
+        //数据校验 是否有输入查询的城市
+        if ($("#search").val()) {
+            //
+            var searchButton = $(this);
+            searchButton.button("option", "disabled", true);
+
+            $.mobile.loading("show");
+
+            var _data = "";
+            var _url = url1;
+                _data = $("#search").val();
+
+           $.get(urlPre + _url + _data,
+                    function (data) {
+                        $("#list").html("");
+                        var list = $("#list");
+                        var weatherTables = $(data).find("string");
+
+                        var _arr = [];
+                        var datalist =new Array();
+                        weatherTables.each(function (index, obj) {
+                            var i = index;
+                            var data = obj.innerText;
+                            datalist.push(data);
+                            // var that = $(this);
+                            // if (that.find("$("#search").val()").text() == "数据没有被发现") {
+                            //     alert("数据没有被发现！");
+                            //     return false;
+                            // }
+                        });
+                            _arr.push('<li><a href="#" data-no="' + datalist[1] + '">' +
+                                '<h2>城市：' + datalist[1] + '</h2>'+
+                                '<p>时间：' + datalist[4] + '</p>' +
+                                '<p>温度：' + datalist[5] + '</p>' +
+                                '<p>天气：' + datalist[6] + '</p>' +
+                                '<p>风力：' + datalist[7]+ '</p>' +
+                                '<p class="ui-li-aside">' + '<img src="images/'+ datalist[9]+'">' + '</p>' +'</a></li>');
+                        if (_arr.length > 0) {
+                            list.html(_arr.join(""));
+                            list.listview("refresh");
+                        }
+
+                        $.mobile.loading("hide");
+
+                        searchButton.button("option", "disabled", false);
+                     });
+
+        } else {
+            alert("请输入要查询的城市！");
+        }
+    };
+        var isAjax=false
+
+    //获取详情
+    var getInfoByweatherCode = function () {
+
+        $.mobile.loading("show");
+        var weatherCode = $(this).attr("data-no");
+
+        if(isAjax) return;
+        isAjax=true;
+
+        $.get(urlPre + url1,
+                {
+                    weatherCode: weatherCode
+                },
+                function (data) {
+                    isAjax=false
+                    $("#detail").find(".ui-content h2").html(weatherCode);
+                    var tbody = $("#detail").find(".ui-content tbody");
+                    tbody.html("");
+                    var datalist =new Array();
+                    var tr = $("<tr></tr>");
+                    $(data).find("string").each(function (index, obj) {
+                        var that = $(this);
+                        var i = index;
+                        var data = obj.innerText;
+                            datalist.push(data);
+                    });
+                        tr.html('<td>' + datalist[1] + '</td>' +
+                                '<td> 时间：' + datalist[4] + '</td>' +
+                                '<td> 温度：' + datalist[5] + '</td>' +
+                                '<td> 日期：' + datalist[6] + '</td>' +
+                                '<td> 天气：' + datalist[7] + '</td>' +
+                                '<td class="ui-li-aside">' + '<img src="images/'+ datalist[9]+'">'+'</td>' +
+                                '<td> 天气实况：' + datalist[10] + '</td>'+
+                                '<td> 推荐：' + datalist[11] + '</td>' 
+                                );
+                        tbody.append(tr);
+                    $.mobile.loading("hide");
+
+                    $.mobile.changePage("#detail");
+                });
+
+
+
+    };
+    //绑定事件
+    var bindEvent = function () {
+        $("#submit").on("click", getweatherList);
+        $("#list").on("click", "a", getInfoByweatherCode);
+    };
+
+    $(document).on("pageshow", "#index", function () {
+        if (isbind) return
+        isbind = 1;
+        bindEvent();
+    });
+
+</script>
+</body>
+</html>
